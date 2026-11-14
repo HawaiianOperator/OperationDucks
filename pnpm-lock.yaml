@@ -11,6 +11,9 @@ importers:
       '@turf/area':
         specifier: ^7
         version: 7.4.0
+      astronomy-engine:
+        specifier: ^2.1.19
+        version: 2.1.19
       lucide-react:
         specifier: ^0.468
         version: 0.468.0(react@19.3.1)
@@ -27,6 +30,9 @@ importers:
         specifier: ^19
         version: 19.3.1(react@19.3.1)
     devDependencies:
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
       '@types/node':
         specifier: ^24
         version: 24.19.2
@@ -323,6 +329,9 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
+  astronomy-engine@2.1.19:
+    resolution: {integrity: sha512-8yWKNf7UeNbH458h3sAJ6ZgAjE5jTXp/mNNRFoC20j2SHwZIjAQeEsBB2Q3uCFRaTCCJRv33K2XhkhZQMXoX6w==}
 
   baseline-browser-mapping@2.11.37:
     resolution: {integrity: sha512-QYph+vfurmaxhNwi9FprfmtkT5cx2Keg8FzZ0vnjO8ukscIybVyZGMFwdllKGlTI6qyU8ck43OM9UXh+IFJihQ==}
@@ -695,6 +704,8 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
+
+  astronomy-engine@2.1.19: {}
 
   baseline-browser-mapping@2.11.37: {}
 

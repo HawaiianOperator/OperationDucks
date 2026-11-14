@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import maplibre, { type GeoJSONSource, type LngLatLike } from "maplibre-gl";
+import { PowerData } from "./power-data";
 import area from "@turf/area";
+import { daylightAt } from "./day-night";
 import { ArrowDownToLine, Bookmark, ChevronDown, CircleHelp, Crosshair, Globe2, Layers, MapPin, Minus, Plus, Search, SquareDashed, X } from "lucide-react";
 
 type Point = [number, number];
 type Field = { name: string; points: Point[] };
-const earth: Point = [-96, 18];
+const earth: Point = [-98, 36];
+const earthZoom = 0.55;
 const home: Point = [-120.2222, 36.8271];
 const examples: { name: string; region: string; center: Point }[] = [
   { name: "Central Valley", region: "California, United States", center: home },
@@ -39,7 +42,7 @@ export default function Home() {
   const [starting, setStarting] = useState(true);
   const [imageryDelayed, setImageryDelayed] = useState(false);
   const [mapError, setMapError] = useState("");
-  const [basemap, setBasemap] = useState("satellite");
+  const [basemap, setBasemap] = useState("streets");
   const [place, setPlace] = useState({ name: "Earth", region: "Global view", center: earth });
   const [globe, setGlobe] = useState(true);
   const [center, setCenter] = useState(earth);
@@ -54,7 +57,7 @@ export default function Home() {
   const [tab, setTab] = useState("Overview");
   const [showLayers, setShowLayers] = useState(true);
   const [showField, setShowField] = useState(true);
-  const [zoom, setZoom] = useState(0);
+  const [zoom, setZoom] = useState(earthZoom);
 
   useEffect(() => {
     try {
@@ -66,7 +69,7 @@ export default function Home() {
       instance = new maplibre.Map({
         container: container.current!,
         center: earth,
-        zoom: 0,
+        zoom: earthZoom,
         minZoom: -1,
         maxPitch: 0,
         attributionControl: { compact: true },
@@ -76,11 +79,15 @@ export default function Home() {
           sources: {
             satellite: { type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, maxzoom: 19, attribution: "Imagery © Esri and contributors" },
             streets: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' },
+            daylight: { type: "geojson", data: daylightAt(new Date()).geometry },
             field: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
           },
           layers: [
-            { id: "satellite", type: "raster", source: "satellite" },
-            { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } },
+            { id: "satellite", type: "raster", source: "satellite", layout: { visibility: "none" }, paint: { "raster-saturation": 0.38, "raster-contrast": 0.2 } },
+            { id: "streets", type: "raster", source: "streets" },
+            { id: "night-shade", type: "fill", source: "daylight", filter: ["==", "kind", "night"], paint: { "fill-color": "#040a19", "fill-opacity": 0.55, "fill-antialias": false } },
+            { id: "terminator-glow", filter: ["==", "kind", "boundary"], type: "line", source: "daylight", paint: { "line-color": "#ffad55", "line-width": 7, "line-blur": 5, "line-opacity": 0.65 } },
+            { id: "terminator", filter: ["==", "kind", "boundary"], type: "line", source: "daylight", paint: { "line-color": "#ffe3a1", "line-width": 1.5 } },
             { id: "fill", type: "fill", source: "field", paint: { "fill-color": "#bce58c", "fill-opacity": 0.25 } },
             { id: "boundary", type: "line", source: "field", paint: { "line-color": "#dcf7aa", "line-width": 3 } },
             { id: "vertices", type: "circle", source: "field", filter: ["==", "$type", "Point"], paint: { "circle-radius": 5, "circle-color": "#e5ffb5", "circle-stroke-width": 2, "circle-stroke-color": "#354326" } },
@@ -164,13 +171,27 @@ export default function Home() {
     setTab("Overview");
   }
 
+  useEffect(() => {
+    if (!ready || !map.current) return;
+    const instance = map.current;
+    const source = instance.getSource("daylight") as GeoJSONSource;
+    for (const layer of ["night-shade", "terminator", "terminator-glow"]) {
+      instance.setLayoutProperty(layer, "visibility", globe ? "visible" : "none");
+    }
+    if (!globe) return;
+    const update = () => source.setData(daylightAt(new Date()).geometry);
+    update();
+    const timer = window.setInterval(update, 10000);
+    return () => window.clearInterval(timer);
+  }, [ready, globe]);
+
   function returnToEarth() {
     setMode(null);
     setSearchOpen(false);
     setGlobe(true);
     setPlace({ name: "Earth", region: "Global view", center: earth });
-    setBasemap("satellite");
-    map.current?.flyTo({ center: earth, zoom: 0, bearing: 0 });
+    setBasemap("streets");
+    map.current?.flyTo({ center: earth, zoom: earthZoom, bearing: 0 });
   }
 
   function visit(location: typeof place) {
@@ -237,7 +258,7 @@ export default function Home() {
     {starting && !mapError && <div className="startup" role="status">
       <DuckMark size={72} />
       <h1>Operation Ducks</h1>
-      <p>Loading satellite map…</p>
+      <p>Loading map…</p>
       <span className="startup-progress" aria-hidden="true" />
     </div>}
     <div inert={starting && !mapError}>
@@ -279,11 +300,11 @@ export default function Home() {
             <div className="map-tools">
               <div><button title="Full Earth view" aria-label="Full Earth view" onClick={returnToEarth}><Globe2 size={18} /></button></div>
               <div><button title="Zoom in" aria-label="Zoom in" onClick={() => map.current?.zoomIn()}><Plus size={19} /></button><button title="Zoom out" aria-label="Zoom out" onClick={() => map.current?.zoomOut()}><Minus size={19} /></button></div>
-              <div><button title="Reset view" aria-label="Reset view" onClick={() => map.current?.flyTo({ center: place.center, zoom: globe ? 0 : 12.8, bearing: 0 })}><Crosshair size={18} /></button></div>
+              <div><button title="Reset view" aria-label="Reset view" onClick={() => map.current?.flyTo({ center: place.center, zoom: globe ? earthZoom : 12.8, bearing: 0 })}><Crosshair size={18} /></button></div>
             </div>
             {mode && <div className="draw-note" role="status"><span>{mode === "polygon" ? "Click to add corners." : points.length ? "Click the opposite corner." : "Click the first corner."}</span>{mode === "polygon" && <button disabled={points.length < 3} onClick={() => finish(points)}>Finish</button>}<button aria-label="Cancel drawing" onClick={() => setMode(null)}><X size={15} /></button></div>}
           </div>
-          <div className="map-foot"><span><Crosshair size={13} /> {Math.abs(center[1]).toFixed(4)}° {center[1] < 0 ? "S" : "N"} · {Math.abs(center[0]).toFixed(4)}° {center[0] < 0 ? "W" : "E"}</span><span>ZOOM {zoom.toFixed(1)} <span className="status-divider">·</span> {basemap === "satellite" ? "WORLD IMAGERY" : "STREET MAP"}</span></div>
+          <div className="map-foot"><span><Crosshair size={13} /> {Math.abs(center[1]).toFixed(4)}° {center[1] < 0 ? "S" : "N"} · {Math.abs(center[0]).toFixed(4)}° {center[0] < 0 ? "W" : "E"}</span><span>{globe && <><span className="status-divider">●</span> DAY / NIGHT <span className="status-divider">·</span> </>}ZOOM {zoom.toFixed(1)} <span className="status-divider">·</span> {basemap === "satellite" ? "WORLD IMAGERY" : "STREET MAP"}</span></div>
         </section>
 
         {globe ? <section className="places" aria-label="Places to explore"><span>Explore a growing region</span>{examples.map(item => <button className="outline" key={item.name} onClick={() => visit(item)}><MapPin size={15} />{item.name}</button>)}</section> : <aside className="hud" aria-label="Field details">
@@ -297,7 +318,7 @@ export default function Home() {
               {field ? <><p><strong>{hectares.toLocaleString(undefined, { maximumFractionDigits: 3 })} ha</strong> · {field.points.length} corners</p><div className="actions"><button className="outline" disabled={!!alreadySaved} onClick={save}><Bookmark size={15} /> {alreadySaved ? "Saved" : "Save field"}</button><button className="outline" onClick={exportField} title="Export GeoJSON" aria-label="Export GeoJSON"><ArrowDownToLine size={17} /></button><button className="outline" title="Clear selection" aria-label="Clear selection" onClick={() => { setField(null); setMode(null); }}><X size={17} /></button></div></> : <p>Draw a boundary on the map to see its area and save the field.</p>}
               <button className="primary" disabled={!ready} aria-pressed={mode === "rectangle"} onClick={() => draw("rectangle")}><SquareDashed size={16} /> {mode === "rectangle" ? "Cancel rectangle" : "Draw rectangle"}</button>
               <button className="secondary" disabled={!ready} aria-pressed={mode === "polygon"} onClick={() => draw("polygon")}>{mode === "polygon" ? "Cancel polygon" : "Draw polygon"}</button>
-            </div> : <div className="detail-body"><div className="section-icon"><Layers size={22} /></div><h2>Field data</h2><p>NASA observation feeds are pending. Field area is available in Overview after drawing a boundary.</p></div>}
+            </div> : <div className="detail-body"><div className="section-icon"><Layers size={22} /></div><h2>Field data</h2>{field ? <PowerData points={field.points} /> : <p>Draw a field boundary to see NASA POWER data.</p>}</div>}
           </section>
           <section className="side-card source-panel">
             <button className="layer-heading" aria-expanded={showLayers} onClick={() => setShowLayers(!showLayers)}><Layers size={17} /> Data sources <ChevronDown size={16} className={showLayers ? "" : "closed"} /></button>
