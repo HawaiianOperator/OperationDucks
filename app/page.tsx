@@ -37,6 +37,7 @@ export default function Home() {
   const map = useRef<maplibre.Map | null>(null);
   const [ready, setReady] = useState(false);
   const [starting, setStarting] = useState(true);
+  const [imageryDelayed, setImageryDelayed] = useState(false);
   const [mapError, setMapError] = useState("");
   const [basemap, setBasemap] = useState("satellite");
   const [place, setPlace] = useState({ name: "Earth", region: "Global view", center: earth });
@@ -92,15 +93,24 @@ export default function Home() {
     }
     map.current = instance;
     instance.once("load", () => setReady(true));
-    instance.once("idle", () => setStarting(false));
-    const startupTimeout = window.setTimeout(() => setStarting(false), 12000);
+    const startedAt = performance.now();
+    let revealTimer: number | undefined;
+    const startupTimeout = window.setTimeout(() => {
+      setImageryDelayed(true);
+      setStarting(false);
+    }, 12000);
+    instance.once("idle", () => {
+      window.clearTimeout(startupTimeout);
+      setImageryDelayed(false);
+      revealTimer = window.setTimeout(() => setStarting(false), Math.max(0, 900 - (performance.now() - startedAt)));
+    });
     instance.on("moveend", () => {
       setCenter(instance.getCenter().wrap().toArray() as Point);
       setZoom(instance.getZoom());
     });
     const observer = new ResizeObserver(() => instance.resize());
     observer.observe(container.current!);
-    return () => { window.clearTimeout(startupTimeout); observer.disconnect(); instance.remove(); map.current = null; };
+    return () => { window.clearTimeout(startupTimeout); window.clearTimeout(revealTimer); observer.disconnect(); instance.remove(); map.current = null; };
   }, []);
 
   useEffect(() => {
@@ -265,6 +275,7 @@ export default function Home() {
           <div className={globe ? "map-frame globe-frame" : "map-frame"}>
             <div className="map" ref={container} />
             {mapError && <p className="map-error" role="alert">{mapError}</p>}
+            {imageryDelayed && <p className="map-error" role="status">Satellite imagery is taking longer than expected.</p>}
             <div className="map-tools">
               <div><button title="Full Earth view" aria-label="Full Earth view" onClick={returnToEarth}><Globe2 size={18} /></button></div>
               <div><button title="Zoom in" aria-label="Zoom in" onClick={() => map.current?.zoomIn()}><Plus size={19} /></button><button title="Zoom out" aria-label="Zoom out" onClick={() => map.current?.zoomOut()}><Minus size={19} /></button></div>
@@ -299,7 +310,3 @@ export default function Home() {
     </div>
   </>;
 }
-
-
-
-
