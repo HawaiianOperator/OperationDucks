@@ -88,3 +88,4 @@ body{background:#0a0e14}
 @keyframes startup-sweep{to{transform:translateX(122%)}}
 @media(prefers-reduced-motion:reduce){.startup-progress::after{animation:none;width:100%}}
 @media(max-width:390px){.logo{font-size:13px;gap:6px}}
+.globe-frame{background:#020409}
