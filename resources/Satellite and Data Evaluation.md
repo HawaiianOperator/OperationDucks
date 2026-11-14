@@ -1,0 +1,59 @@
+# Satellite and data evaluation
+
+Initial feasibility review for the NASA Hackathon, November 14, 2026. Broadcast availability is based on operator documentation and published reception logs. Local reception, decoded data, and coverage for a specific replay are pending verification.
+
+## Coverage at a glance
+
+- **Global dashboard** — Start with IMERG for precipitation, NASA POWER for daily weather and solar estimates, SMAP for soil moisture, and MODIS for historical context.
+- **Local detail** — Add Landsat vegetation and ECOSTRESS surface temperature where usable scenes overlap the replay. Keep Meteomatics for wind.
+- **Live reception** — Use GOES-18 for a California weather demo or XI-IV to demonstrate a CubeSat beacon reception.
+
+## Free-to-receive broadcasts
+
+All frequencies below are nominal downlink carrier centers. A receiver still needs the right antenna, bandwidth, decoder, and line of sight.
+
+| Satellite and service | Frequency | Signal and receiver | Value to the project |
+| --- | --- | --- | --- |
+| GOES-18 West and GOES-19 East, HRIT/EMWIN | **1694.1 MHz** | L-band, linear polarization, BPSK, about 400 kbps and 1.205 MHz occupied bandwidth. Use a fixed dish, filtered LNA, suitable SDR, and HRIT decoder. NOAA cites a 1.2 m minimum at 5° elevation in its specification. | Live rebroadcast of selected visible and infrared imagery and weather messages. Start with GOES-18 for a California demo and confirm the planned receiver has a clear view. [NOAA scan sectors](https://www.nesdis.noaa.gov/our-satellites/currently-flying/goes-east-west/goes-schedules-and-scan-sectors) · [HRIT specs](https://noaasis.noaa.gov/docs/LRIT_HRIT_EMWIN.pdf) · [Product list](https://www.noaasis.noaa.gov/pdf/docs/TWG2025/1145%20HRIT%20EMWIN%20Update%20Avruch.pdf) · [Antenna guidance](https://www.noaasis.noaa.gov/pdf/TWG-HRIT.pdf) |
+| NOAA-20 and NOAA-21, JPSS High Rate Data | **7812 MHz** each | X-band, 15 Mbps on NOAA-20 and 25 Mbps on NOAA-21. Requires a tracking dish, downconverter, high-rate demodulation, and product processing. Data is received during visible polar passes. | Raw science and calibration data, including VIIRS. Use NOAA's processed products or an existing station for the first trial. [NOAA RF comparison](https://www.cgms-info.org/Agendas/GetWpFile.ashx?aid=917a5e87-d345-483f-b84a-8360c48ef4f7&wid=78f44221-fa71-4498-bd5c-08b0e42bccab) · [NOAA Direct Broadcast processing](https://fieldterminal.nesdis.noaa.gov/) |
+| Metop-B and Metop-C, AHRPT | **1701.300 or 1707.000 MHz** | EUMETSAT specifies both channel options. Confirm the selected channel before each test. L-band, RHCP, QPSK FEC 3/4, 4.5 MHz occupied bandwidth. Use a tracking antenna and a receiver wide enough for AHRPT. | Live polar-orbiting instrument data during local passes. An L-band option when the team has tracking and sufficient receive bandwidth. [EUMETSAT service](https://user.eumetsat.int/data/satellites/metop/regional-data-service-ears) · [RF specification](https://user.eumetsat.int/s3/eup-strapi-media/TD_18_Metop_Direct_Readout_AHRPT_Technical_Description_v3_A_1cb789b653.pdf) |
+| CubeSat XI-IV / CO-57, NORAD 27848 | **436.8487 MHz** logged, typically rounded to **436.849 MHz** | UHF CW beacon. Use a UHF SDR and directional antenna, track the pass, and account for Doppler. SatNOGS lists a November 10, 2026 observation and November 14 activity. | A simple space-to-ground reception demo. Useful evidence includes station, UTC, waterfall, and beacon decode. This is a spacecraft beacon. [SatNOGS observation log](https://network.satnogs.org/users/lw2dtz/) · [Telemetry activity](https://db.satnogs.org/stats/) |
+
+### MODIS and satellite status checks
+
+- **Aqua MODIS** has a documented **8160 MHz**, **15 Mbps** X-band direct broadcast. NASA projects Aqua science operations into September 2027. I did not independently verify the transmitter was on in November 2026. Verify a recent station capture before depending on it. [Aqua direct broadcast](https://aqua.nasa.gov/content/direct-broadcast) · [Aqua RF interface](https://directreadout.sci.gsfc.nasa.gov/aqua_documents/IDD_Aqua-DB.pdf) · [NASA mission outlook](https://science.nasa.gov/science-research/earth-science/terra-the-end-of-an-era/)
+- **Terra MODIS** used **8212.5 MHz**. NASA reports the direct broadcast stopped in May 2024 with no plans to resume. **Suomi NPP** HRD was scheduled for permanent shutdown on November 2, 2026. Use the archives or the operational NOAA-20/21 paths. [Terra operations](https://terra.nasa.gov/about/instrumentupdatearchive) · [Terra RF guide](https://directreadout.sci.gsfc.nasa.gov/terra_documents/DAS_UG.pdf) · [NOAA S-NPP shutdown](https://www.star.nesdis.noaa.gov/jpss/)
+- **NASA TROPICS** is an option if the project wants actual CubeSat weather science. NASA publishes a public TROPICS03 rain-rate product. Use the published dataset and check whether the relevant scans cover the chosen event. An open live RF feed for that product was not verified. [NASA TROPICS mission](https://weather.ndc.nasa.gov/tropics/) · [Public rain-rate product](https://data.nasa.gov/dataset/tropics03-pathfinder-l2b-instantaneous-surface-rain-rate-isrr-v1-0)
+
+## Dataset formats and coverage
+
+| Source | Download format | Data created and coverage |
+| --- | --- | --- |
+| NASA POWER | JSON or CSV for selected queries, NetCDF for gridded analysis where supported | Global gridded meteorology and solar estimates. Pull near-surface air temperature, corrected precipitation, and surface shortwave radiation. Use daily data across regions and retain parameter units. [NASA POWER API formats](https://power.larc.nasa.gov/docs/services/api/temporal/) |
+| SMAP SPL4SMGP v8 | HDF5 | Surface and root-zone soil moisture at 9 km every 3 hours, from satellite observations assimilated into a model on a near-global land grid. [NSIDC product](https://nsidc.org/data/spl4smgp/versions/8) |
+| GPM IMERG v07 | HDF5 for native granules, image service for previews | Global 0.1° precipitation grids every 30 minutes, or 48 time slices per day. Derive rainfall totals from rate and interval duration. Use Early for recent coverage and Final for retrospective analysis. [NASA IMERG](https://gpm.nasa.gov/data/imerg) · [NASA global grid](https://gis.earthdata.nasa.gov/portal/home/item.html?id=598df0e6fd674ab7855f448f7f6f0e39) |
+| Landsat 8/9 NDVI | GeoTIFF, or derive a GeoTIFF from Collection 2 surface reflectance | A 30 m vegetation greenness raster per usable land scene. Combine missions for more coverage and mask clouds and shadows. [USGS NDVI](https://www.usgs.gov/landsat-missions/landsat-normalized-difference-vegetation-index) · [USGS surface reflectance](https://www.usgs.gov/landsat-missions/landsat-surface-reflectance) |
+| ECOSTRESS ECO_L2T_LSTE v002 | Cloud-Optimized GeoTIFF (COG), one file per band | 70 m land surface temperature, emissivity, error and quality layers wherever there is a usable ISS scene. Use separate products for plant stress. [NASA product metadata](https://catalog.data.gov/dataset/ecostress-tiled-land-surface-temperature-and-emissivity-instantaneous-l2-global-70-m-v002) |
+| MODIS MOD13Q1 and MOD11A1 | HDF4 science rasters | 250 m NDVI/EVI 16-day composites and daily 1 km land surface temperature with quality flags. Use for broad historical comparisons and preserve the composite period. [NASA MODIS vegetation catalog](https://search.earthdata.nasa.gov/search?q=mod13) · [NASA MODIS product list](https://wiki.earthdata.nasa.gov/spaces/DAS/pages/170800655/MODIS%2BProducts%2Bversions%2B3%2B4%2B5%2Band%2B6%2Bunless%2Bspecified%2Bdifferently) |
+
+### Radio formats and throughput
+
+- **GOES HRIT/EMWIN, 1694.1 MHz** — CCSDS-framed HRIT/LRIT imagery and weather messages. The original GOES products are NetCDF-4. NOAA lists Himawari imagery on GOES West's rebroadcast. At 400 kbps, the nominal stream is about 4.3 GB per day of continuous capture before processing. [NOAA product and format list](https://ospo.noaa.gov/operations/goes/hrit/index.html)
+- **GOES GRB, 1686.600 MHz** — Higher-throughput weather downlink. Dual circular polarization and 31 Mbps aggregate, approximately 335 GB per day of nominal stream capacity. NOAA specifies a nominal 4.5 m dish under its stated receiver-noise assumptions. [NOAA GRB specification](https://noaasis.noaa.gov/GOES/GRB/specifications.html)
+- **NOAA-20 and NOAA-21 HRD, 7812 MHz** — Binary channel access data units carry science and calibration packets. Process the received packets into calibrated, geolocated products such as VIIRS radiance and brightness temperature. NOAA distributes native JPSS products in HDF5. A 10-minute capture at 15 or 25 Mbps is about 1.13 or 1.88 GB respectively at the nominal bit rate. [NOAA framing specification](https://www.nesdis.noaa.gov/s3/2022-03/JPSS-1SCHRDtoDBSRFICDRevA-470-REF-00184February9%2C2015.pdf) · [NOAA HDF5 product guide](https://www.nesdis.noaa.gov/s3/2022-03/474-00019-01_JPSS-API-Users-Guide-Vol-I_0123A.pdf)
+- **Metop AHRPT** — Framed binary instrument packets. **XI-IV** — CW Morse beacon. Store a station observation as metadata with a waterfall or audio artifact and any decoded text. [EUMETSAT specification](https://user.eumetsat.int/s3/eup-strapi-media/TD_18_Metop_Direct_Readout_AHRPT_Technical_Description_v3_A_1cb789b653.pdf) · [SatNOGS observation log](https://network.satnogs.org/users/lw2dtz/)
+
+These are decimal line-rate estimates, calculated as bits per second times capture duration divided by eight. Actual retained science files vary with framing, compression, reception, and product selection.
+
+### Global ingestion plan
+
+1. Ingest global IMERG and POWER and near-global land SMAP for the broad baseline. Add a global MODIS history. Pull Landsat and ECOSTRESS by intersecting scene footprints to add local detail where observations exist.
+2. Add GOES East/West for the Americas and adjoining oceans, Himawari-9 for East Asia and the western Pacific, and Meteosat for Europe, Africa and Indian Ocean coverage. Add JPSS polar tracks to extend high-latitude observations. Each geostationary disk has edge and polar limits. Source the original regional feeds online for breadth and use GOES radio reception for a live station demo. NOAA lists open cloud access on Google, AWS, and, for some feeds, Azure. [NOAA cloud catalog](https://www.noaa.gov/nodd/datasets) · [EUMETSAT satellites](https://www.eumetsat.int/our-satellites/meteosat-series) · [Indian Ocean service](https://www.eumetsat.int/msg-services) · [NOAA JPSS access](https://www.star.nesdis.noaa.gov/jpss/DataAccess.php)
+3. Catalog all available regions first. Preserve original files or source links, serve raster map tiles from COGs or chunked Zarr arrays, and retain observation times, source footprints, units, and quality flags. Track percentage of region covered by valid pixels, age of latest data, usable time slices per day, and bytes per day per feed. Measure actual download volumes on a representative day before committing to an all-history mirror.
+
+## First tests
+
+1. Confirm the receive site and radio. Calculate a local XI-IV pass and check GOES-18 look angles.
+2. Try one XI-IV pass or use a public station reception to develop the map panel. Save the NORAD ID, station, start and end UTC, frequency, and original waterfall or decoded beacon link.
+3. For the live weather test, decode one GOES-18 image and record its observation time and local receive time. Keep a labeled recorded example for rehearsal.
+4. For the science-layer test, pull one IMERG accumulation and one Landsat NDVI scene for the proposed replay. Verify file readability, spatial overlap, timestamps, masks, and source attribution. Check SMAP depth and quality flags, POWER parameter units and time convention, and the full MODIS composite window before comparing layers. Keep source records available to the AI guide for citations.

@@ -20,7 +20,7 @@ A user selects a hotspot, enables the wind layer, and asks, “What did the avai
 
 ## Data and integration
 
-See the [initial satellite and data evaluation](Satellite%20and%20Data%20Evaluation.md) for candidate products, direct-broadcast frequencies, receiver requirements, and first tests.
+See the [initial satellite and data evaluation](resources/Satellite%20and%20Data%20Evaluation.md) for candidate products, direct-broadcast frequencies, receiver requirements, and first tests.
 
 | Source | Role in the proposal |
 | --- | --- |
