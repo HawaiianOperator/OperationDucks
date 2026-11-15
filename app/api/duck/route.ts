@@ -94,6 +94,15 @@ export async function POST(request: Request) {
       const data = await response.json();
       if (data && (typeof data.answer === "string" || typeof data.error === "string")) {
         if (typeof data.answer === "string" && data.answer.startsWith("Which dataset or variable should I look up?")) {
+          const chatResponse = await fetch(endpoint, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: body.question, mode: "chat" }),
+            cache: "no-store", redirect: "error", signal: AbortSignal.timeout(30000),
+          }).catch(() => null);
+          const chat = chatResponse?.ok ? await chatResponse.json().catch(() => null) : null;
+          if (chat?.response_type === "generated" && typeof chat.answer === "string" && chat.answer.trim()) {
+            return Response.json(chat);
+          }
           return Response.json(farmGuide(body.question, farmNotes, true) ?? {
             answer: "I can help with starting a farm, finding land, choosing crops, irrigation, and checking field conditions. Tell me what you’re trying to do and what you already know about the site.",
           });
